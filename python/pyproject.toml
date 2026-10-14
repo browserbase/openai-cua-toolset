@@ -1,0 +1,10 @@
+[project]
+name = "openai-cua-toolset-python"
+version = "0.1.0"
+description = "Quickstart: give GPT a browser with the OpenAI SDK's browser toolset and Stagehand"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=3.31.0",
+    "stagehand-openai-sdk",
+]
