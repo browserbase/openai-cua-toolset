@@ -56,7 +56,7 @@ cd typescript && pnpm install       # or: cd python && uv sync
 cp .env.example .env
 ```
 
-Ask the user to open `.env` and set `OPENAI_API_KEY`, plus `BROWSERBASE_API_KEY` if they chose Browserbase. The example runs `gpt-5.5` unless `OPENAI_MODEL` is set; ask which model they want and, if it isn't `gpt-5.5`, have them uncomment `OPENAI_MODEL` in `.env` and set it. Keys come from https://platform.openai.com/api-keys and https://www.browserbase.com. `.env` is gitignored in both directories.
+Ask the user to open `.env` and set `OPENAI_API_KEY`, plus `BROWSERBASE_API_KEY` if they chose Browserbase. The example runs `gpt-6-luna` unless `OPENAI_MODEL` is set; ask which model they want and, if it isn't `gpt-6-luna`, have them uncomment `OPENAI_MODEL` in `.env` and set it. Keys come from https://platform.openai.com/api-keys and https://www.browserbase.com. `.env` is gitignored in both directories.
 
 Confirm that a key is set without printing it. This prints only a count; `1` means the key is present:
 
@@ -66,7 +66,7 @@ grep -c '^OPENAI_API_KEY=..' .env
 
 ### 4. Switch to Browserbase (only if chosen)
 
-Replace the `StagehandBrowserDriver.launch(...)` call in the example with the Browserbase variant shown in that language's README ("Use Browserbase" section). Keep `allowedDomains` / `allowed_domains` and `webrtc`. Everything else stays the same.
+Replace the `StagehandBrowserDriver.launch(...)` call in the example with the Browserbase variant shown in that language's README ("Use Browserbase" section). Keep `allowedDomains` / `allowed_domains`. Everything else stays the same.
 
 ### 5. Run the example
 
@@ -110,9 +110,9 @@ uv add 'openai>=3.31.0' stagehand-openai-sdk            # Python (import as stag
 The pattern is the same as the example:
 
 - Create one `StagehandBrowserDriver` per task with `launch`, `connect` or `browserbase`.
-- Build the toolset with `createBrowserToolset(driver, options?)` / `create_browser_toolset(driver, ...)`. It returns a bundle: `toolset`, `members`, `confirm`, `urlPolicy` / `url_policy`, and `close()`.
-- Pass `bundle.toolset` as `browser` to `new ResponsesToolRunner({ browser })` / `AsyncResponsesToolRunner(browser=...)`, then call `runner.run(client, { model, store: false, input }, { maxSteps })`.
-- Close the bundle in `finally`. It stops the toolset, then closes the driver and only what the driver created. The tool runner never closes it.
+- Build the toolset with `createBrowserToolset(driver, options?)` / `create_browser_toolset(driver, ...)`. It returns OpenAI's own `BrowserToolset` / `AsyncBrowserToolset`.
+- Pass it as `browser` to `new ResponsesToolRunner({ browser })` / `AsyncResponsesToolRunner(browser=...)`, then call `runner.run(client, { model, store: false, input }, { maxSteps })`.
+- Call `await driver.close()` in `finally`. It releases the browser, and only what the driver created. The toolset and the tool runner never close it.
 
 The Python driver is async only, so use `AsyncOpenAI` and `AsyncResponsesToolRunner`. In TypeScript keep a single copy of `openai` in the dependency tree: the driver raises the SDK's own error class, and a second copy turns every refusal into a generic failure.
 
@@ -130,7 +130,6 @@ Useful options for `StagehandBrowserDriver.launch`:
 | Option | Purpose |
 | --- | --- |
 | `allowedDomains` / `blockedDomains` | Restrict where the browser may go, enforced inside the browser. Blocked entries win. |
-| `webrtc` | Keep `"allow"`, as in the examples. It turns off an experimental WebRTC guard that is being removed. |
 | `headless` | `false` to watch, `true` for servers. |
 | `chromePath` | Use a specific Chromium-based browser. |
 | `viewport` | Page size for screenshots and coordinates (default 1280x720). |
@@ -155,7 +154,7 @@ Useful options for `StagehandBrowserDriver.launch`:
 | Package exports or attributes missing | The installed OpenAI SDK predates the browser toolset helpers. Reinstall with `pnpm install` or `uv sync`. |
 | `TypeError` or throw when selecting `run_script` / file members | Pass your own `confirm`. |
 | The run stops before answering | It hit the step limit. Raise `maxSteps` / `max_steps`. |
-| Browser connection lost mid-run | Close the bundle and create a new driver; a session isn't reused after its browser dies. |
+| Browser connection lost mid-run | Close the driver and create a new one; a session isn't reused after its browser dies. |
 | Downloads don't appear on Browserbase | Expected: `download_file` isn't available in Browserbase sessions. |
 
 ## Why Stagehand as the driver

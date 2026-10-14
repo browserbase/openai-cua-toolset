@@ -6,7 +6,7 @@ Run a GPT browser task with the OpenAI SDK and the `stagehand-openai-sdk` npm pa
 
 - Node.js 22.18 or later and pnpm.
 - Google Chrome for local execution, or a Browserbase API key for a hosted browser.
-- An OpenAI API key with access to `gpt-5.5`, or another model you set with `OPENAI_MODEL`.
+- An OpenAI API key with access to `gpt-6-luna`, or another model you set with `OPENAI_MODEL`.
 
 ## Install and run
 
@@ -15,7 +15,7 @@ Run these commands from this repository's `typescript` directory:
 ```bash
 pnpm install
 cp .env.example .env
-# Set OPENAI_API_KEY in .env (and OPENAI_MODEL to use a model other than gpt-5.5)
+# Set OPENAI_API_KEY in .env (and OPENAI_MODEL to use a model other than gpt-6-luna)
 pnpm example
 ```
 
@@ -36,17 +36,16 @@ import {
 const driver = await StagehandBrowserDriver.launch({
   headless: false,
   allowedDomains: ["example.com", "iana.org"],
-  webrtc: "allow",
 });
 
 const browser = createBrowserToolset(driver);
 
 try {
-  const runner = new ResponsesToolRunner({ browser: browser.toolset });
+  const runner = new ResponsesToolRunner({ browser });
   const response = await runner.run(
     new OpenAI(),
     {
-      model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+      model: process.env.OPENAI_MODEL ?? "gpt-6-luna",
       store: false,
       input: "Open example.com and tell me what the page says",
     },
@@ -54,13 +53,12 @@ try {
   );
   console.log(response.output_text);
 } finally {
-  await browser.close();
+  await driver.close();
 }
 ```
 
-- `createBrowserToolset(driver)` returns `{ toolset, members, confirm, urlPolicy, close }`. With no options it advertises the default members, derives a `urlPolicy` from the domain lists, and uses the default `confirm`, which approves every default member while the browser is alive.
-- `browser.close()` stops the toolset, then closes the driver and only what the driver created (the Chrome process here).
-- `webrtc: "allow"` turns off an experimental WebRTC guard that is being removed from the driver.
+- `createBrowserToolset(driver)` returns OpenAI's `BrowserToolset`. With no options it advertises the default members, derives a `urlPolicy` from the domain lists, and uses the default `confirm`, which approves every default member while the browser is alive.
+- `driver.close()` releases the browser, and only what the driver created (the Chrome process here). The toolset never closes the driver.
 
 Edit the task in `input`, or set `OPENAI_MODEL` in `.env` to change the model. Set `headless: true` to run without a visible Chrome window, and update `allowedDomains` for your task's websites.
 
@@ -77,11 +75,10 @@ if (!apiKey) throw new Error("Set BROWSERBASE_API_KEY before running this exampl
 const driver = await StagehandBrowserDriver.browserbase({
   apiKey,
   allowedDomains: ["example.com", "iana.org"],
-  webrtc: "allow",
 });
 ```
 
-Keep the runner and `finally` block, then run `pnpm example` again. Browserbase creates the browser session, so you don't need local Chrome. `browser.close()` releases the session.
+Keep the runner and `finally` block, then run `pnpm example` again. Browserbase creates the browser session, so you don't need local Chrome. `driver.close()` releases the session.
 
 ## Enable optional tools
 
@@ -102,7 +99,6 @@ Add opt-ins with `additionalMembers`, or pass the exact set with `members` (not 
 const driver = await StagehandBrowserDriver.launch({
   headless: false,
   allowedDomains: ["example.com"],
-  webrtc: "allow",
   uploads: {
     roots: ["/absolute/path/to/uploads"], // upload_file reads only files under these directories
     resolveGrant: async (grantId) => (grantId === "report" ? { path: "/absolute/path/to/uploads/report.pdf" } : null),

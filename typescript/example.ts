@@ -8,17 +8,15 @@ import {
 const driver = await StagehandBrowserDriver.launch({
   headless: false,
   allowedDomains: ["example.com", "iana.org"],
-  webrtc: "allow",
 });
-
 const browser = createBrowserToolset(driver);
 
 try {
-  const runner = new ResponsesToolRunner({ browser: browser.toolset });
+  const runner = new ResponsesToolRunner({ browser });
   const response = await runner.run(
     new OpenAI(),
     {
-      model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+      model: process.env.OPENAI_MODEL ?? "gpt-6-luna",
       store: false,
       input: "Open example.com and tell me what the page says",
     },
@@ -26,5 +24,5 @@ try {
   );
   console.log(response.output_text);
 } finally {
-  await browser.close();
+  await driver.close();
 }

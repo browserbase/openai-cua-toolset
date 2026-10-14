@@ -22,7 +22,7 @@ This repository contains TypeScript and Python examples that import the publishe
 | TypeScript | [TypeScript quickstart](typescript/README.md) | Node.js 22.18+ and pnpm | [npm](https://www.npmjs.com/package/stagehand-openai-sdk) |
 | Python | [Python quickstart](python/README.md) | Python 3.11+ and uv | [PyPI](https://pypi.org/project/stagehand-openai-sdk/) |
 
-Both examples open `example.com`, ask the model what the page says, and print its answer. You'll need an OpenAI API key and access to the model you run (`gpt-5.5` by default; set `OPENAI_MODEL` to change it).
+Both examples open `example.com`, ask the model what the page says, and print its answer. You'll need an OpenAI API key and access to the model you run (`gpt-6-luna` by default; set `OPENAI_MODEL` to change it).
 
 ```bash
 git clone https://github.com/browserbase/openai-cua-toolset.git
@@ -38,7 +38,7 @@ Using a coding agent? Point it at [AGENTS.md](AGENTS.md) and it will set up and 
 - **Local Chrome:** Run the examples as written. They launch a visible Chrome window, so install Google Chrome first.
 - **Browserbase:** Run without local Chrome by replacing `StagehandBrowserDriver.launch` with `StagehandBrowserDriver.browserbase` and providing a Browserbase API key. Both language guides include the replacement code.
 
-Keep the same driver throughout the tool loop. Close it when the task finishes or fails: `browser.close()` / `bundle.close()` stops the toolset and then the driver. The OpenAI tool runner doesn't close it for you.
+Keep the same driver throughout the tool loop. Close it when the task finishes or fails with `driver.close()`; the toolset and the tool runner never close it.
 
 ## Adapt the example
 
@@ -55,7 +55,7 @@ Change the task in `input` and set the model with `OPENAI_MODEL` (or directly in
 | Consent hook | `confirm` | `confirm` (`async def`) |
 | Chrome executable | `chromePath` | `chrome_path` |
 | Step limit | `{ maxSteps: 20 }` | `max_steps=20` |
-| Cleanup | `await browser.close()` in `finally` | `await bundle.close()` in `finally` |
+| Cleanup | `await driver.close()` in `finally` | `await driver.close()` in `finally` |
 
 ## Limitations
 

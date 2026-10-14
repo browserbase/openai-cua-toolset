@@ -6,7 +6,7 @@ Run an async GPT browser task with the OpenAI SDK and the `stagehand-openai-sdk`
 
 - Python 3.11 or later and uv.
 - Google Chrome for local execution, or a Browserbase API key for a hosted browser.
-- An OpenAI API key with access to `gpt-5.5`, or another model you set with `OPENAI_MODEL`.
+- An OpenAI API key with access to `gpt-6-luna`, or another model you set with `OPENAI_MODEL`.
 
 ## Install and run
 
@@ -15,7 +15,7 @@ Run these commands from this repository's `python` directory:
 ```bash
 uv sync
 cp .env.example .env
-# Set OPENAI_API_KEY in .env (and OPENAI_MODEL to use a model other than gpt-5.5)
+# Set OPENAI_API_KEY in .env (and OPENAI_MODEL to use a model other than gpt-6-luna)
 uv run --env-file .env python example.py
 ```
 
@@ -31,6 +31,7 @@ import os
 
 from openai import AsyncOpenAI
 from openai.lib.responses_tool_runner import AsyncResponsesToolRunner
+
 from stagehand_openai_sdk import StagehandBrowserDriver, create_browser_toolset
 
 
@@ -38,33 +39,30 @@ async def main() -> None:
     driver = await StagehandBrowserDriver.launch(
         headless=False,
         allowed_domains=["example.com", "iana.org"],
-        webrtc="allow",
     )
-    bundle = create_browser_toolset(driver)
+    browser = create_browser_toolset(driver)
     try:
-        async with AsyncOpenAI() as client:
-            runner = AsyncResponsesToolRunner(browser=bundle.toolset)
-            response = await runner.run(
-                client,
-                {
-                    "model": os.environ.get("OPENAI_MODEL", "gpt-5.5"),
-                    "store": False,
-                    "input": "Open example.com and tell me what the page says",
-                },
-                max_steps=20,
-            )
-            print(response.output_text)
+        runner = AsyncResponsesToolRunner(browser=browser)
+        response = await runner.run(
+            AsyncOpenAI(),
+            {
+                "model": os.environ.get("OPENAI_MODEL", "gpt-6-luna"),
+                "store": False,
+                "input": "Open example.com and tell me what the page says",
+            },
+            max_steps=20,
+        )
+        print(response.output_text)
     finally:
-        await bundle.close()
+        await driver.close()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-- `create_browser_toolset(driver)` returns a bundle with `toolset`, `members`, `confirm`, `url_policy` and `close()`. With no options it advertises the default members, derives a `url_policy` from the domain lists, and uses the default `confirm`, which approves every default member while the browser is alive.
-- `bundle.close()` stops the toolset, then closes the driver and only what the driver created (the Chrome process here).
-- `webrtc="allow"` turns off an experimental WebRTC guard that is being removed from the driver.
+- `create_browser_toolset(driver)` returns OpenAI's `AsyncBrowserToolset`. With no options it advertises the default members, derives a `url_policy` from the domain lists, and uses the default `confirm`, which approves every default member while the browser is alive.
+- `driver.close()` releases the browser, and only what the driver created (the Chrome process here). The toolset never closes the driver.
 - The driver is async only, so it pairs with `AsyncOpenAI` and `AsyncResponsesToolRunner`.
 
 Edit the task in `input`, or set `OPENAI_MODEL` in `.env` to change the model. Set `headless=True` to run without a visible Chrome window, and update `allowed_domains` for your task's websites.
@@ -79,11 +77,10 @@ Replace the `StagehandBrowserDriver.launch` call inside `main` with:
 driver = await StagehandBrowserDriver.browserbase(
     api_key=os.environ["BROWSERBASE_API_KEY"],
     allowed_domains=["example.com", "iana.org"],
-    webrtc="allow",
 )
 ```
 
-Keep the runner and `finally` block, then run `uv run --env-file .env python example.py` again. Browserbase creates the browser session, so you don't need local Chrome. `bundle.close()` releases the session.
+Keep the runner and `finally` block, then run `uv run --env-file .env python example.py` again. Browserbase creates the browser session, so you don't need local Chrome. `driver.close()` releases the session.
 
 ## Enable optional tools
 
@@ -118,11 +115,10 @@ async def confirm(ctx: dict, **_) -> bool:
 driver = await StagehandBrowserDriver.launch(
     headless=False,
     allowed_domains=["example.com"],
-    webrtc="allow",
     # upload_file reads only files under these directories
     uploads=UploadOptions(roots=["/absolute/path/to/uploads"], resolve_grant=resolve_upload),
 )
-bundle = create_browser_toolset(
+browser = create_browser_toolset(
     driver,
     additional_members=["click_at", "set_checked", "run_script", "upload_file"],
     confirm=confirm,
